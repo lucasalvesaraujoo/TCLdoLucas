@@ -101,6 +101,9 @@
     <string name="on">Ativado</string>
     <string name="off">Desativado</string>
     <string name="enable">Ativar</string>
+    <string name="match_live">Ao vivo</string>
+    <string name="match_in">em %1$s</string>
+    <string name="match_later">Depois</string>
     <string name="race_kicker">Etapa %1$d · %2$s · %3$s</string>
     <string name="race_kicker_no_place">Etapa %1$d · %2$s</string>
     <string name="race_next">%1$s em %2$s</string>

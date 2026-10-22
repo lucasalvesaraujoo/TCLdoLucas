@@ -183,7 +183,43 @@
     <bool name="shamsi_date">false</bool>
 
     <!-- A name after the greeting: "Mr. Trịnh" shows GOOD MORNING, MR. TRỊNH. Empty: the greeting alone. -->
-    <string name="greeting_name" translatable="false"></string>
+    <string name="greeting_name" translatable="false">Lucas</string>
+
+    <!-- Match panel (this fork): the teams whose next match shows under the clock, fetched by the launcher itself from
+         their agenda page on ge.globo.com every 6 hours while Home is open. One line per team:
+         "ge team id|name on the panel|agenda page". The id is the men's first team's (the women's and youth teams
+         have their own). Empty: no panel, and the launcher never goes online. -->
+    <string-array name="match_teams" translatable="false">
+        <item>275|Palmeiras|https://ge.globo.com/futebol/times/palmeiras/agenda-de-jogos-do-palmeiras/</item>
+        <item>2318|Seleção|https://ge.globo.com/futebol/selecao-brasileira/agenda-de-jogos-da-selecao/</item>
+    </string-array>
+    <!-- The app each broadcaster on ge's "onde assistir" list opens: "name as ge writes it=package". live_tv is the
+         TV's own Live TV app (live_tv_package), for free-to-air channels. "|link" after the package opens that link
+         in the app, such as a YouTube channel by its /channel/ id (the TV app does not open @handle links). Unlisted
+         names show as a dimmed pill with no app, and Cartola and ticket shops are left out; a listed app that is not
+         installed shows dimmed too. -->
+    <string-array name="match_apps" translatable="false">
+        <item>Globo=live_tv</item>
+        <item>SBT=live_tv</item>
+        <item>Record=live_tv</item>
+        <item>Band=live_tv</item>
+        <item>TV Brasil=live_tv</item>
+        <item>Premiere=com.globo.globotv</item>
+        <item>sportv=com.globo.globotv</item>
+        <item>globoplay=com.globo.globotv</item>
+        <item>Prime Vídeo=com.amazon.amazonvideo.livingroom</item>
+        <item>Prime Video=com.amazon.amazonvideo.livingroom</item>
+        <item>Paramount+=com.cbs.ca</item>
+        <item>Disney+=com.disney.disneyplus</item>
+        <item>ESPN=com.disney.disneyplus</item>
+        <item>Max=com.wbd.stream</item>
+        <item>HBO Max=com.wbd.stream</item>
+        <!-- ge TV and CazéTV stream on their YouTube channels (@getv, @CazeTV). -->
+        <item>Ge TV=com.google.android.youtube.tv|https://www.youtube.com/channel/UCgCKagVhzGnZcuP9bSMgMCg</item>
+        <item>CazéTV=com.google.android.youtube.tv|https://www.youtube.com/channel/UCZiYbVptd3PVPf4f6eR6UaQ</item>
+        <item>Cazé TV=com.google.android.youtube.tv|https://www.youtube.com/channel/UCZiYbVptd3PVPf4f6eR6UaQ</item>
+        <item>YouTube=com.google.android.youtube.tv</item>
+    </string-array>
     <!-- Optional VPN app the network pill opens (hold the pill for Wi-Fi settings), e.g. the package of the
          VPN you use. Empty: the pill opens Wi-Fi settings. The green VPN badge shows for any VPN either way;
          with an app set here, a red "VPN off" badge also shows while no VPN is up. -->

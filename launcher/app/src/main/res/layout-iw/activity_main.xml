@@ -94,6 +94,91 @@
             android:letterSpacing="0.12" />
     </LinearLayout>
 
+    <!-- Match panel (config.xml match_teams, see MatchDay and MatchFeed): in the same free space under the clock,
+         from a few days before a followed team's match until it is over, with a button per app that shows it.
+         Hidden while the race-weekend panel is up. Text updated once a minute with the clock, never animated. -->
+    <LinearLayout
+        android:id="@+id/matchPanel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|left"
+        android:layout_marginStart="60dp"
+        android:layout_marginTop="150dp"
+        android:orientation="vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- A short green bar, the panel's one accent. -->
+            <View
+                android:layout_width="3dp"
+                android:layout_height="13dp"
+                android:layout_marginEnd="10dp"
+                android:background="@drawable/match_bar" />
+
+            <TextView
+                android:id="@+id/matchKicker"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textColor="#B3FFFFFF"
+                android:textSize="12sp"
+                android:fontFamily="@string/font_medium"
+                android:letterSpacing="0.22"
+                android:textAllCaps="true" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <TextView
+                android:id="@+id/matchHeadline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="14dp"
+                android:singleLine="true"
+                android:textColor="#FFFFFFFF"
+                android:textSize="30sp"
+                android:fontFamily="@string/font_light"
+                android:letterSpacing="-0.01"
+                android:includeFontPadding="false" />
+
+            <!-- One pill per app that shows the match, added in code. -->
+            <LinearLayout
+                android:id="@+id/matchWatch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:clipChildren="false"
+                android:clipToPadding="false" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/matchLater"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:lineSpacingExtra="6dp"
+            android:textColor="#99FFFFFF"
+            android:textSize="12sp"
+            android:fontFamily="@string/font_medium"
+            android:letterSpacing="0.12" />
+    </LinearLayout>
+
     <!-- Cinematic top shelf: darkens the edge behind the shelf and the lower half, so the text and the
          dock stay readable over the artwork. -->
     <View

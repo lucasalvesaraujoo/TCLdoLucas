@@ -177,6 +177,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private List<RaceWeekend.Race> raceCalendar;
     private View racePanel;
     private TextView raceKicker, raceHeadline, raceSessions;
+    private MatchFeed matchFeed;
+    private List<MatchDay.Match> matchCalendar;
+    private View matchPanel;
+    private TextView matchKicker, matchHeadline, matchLater;
+    private LinearLayout matchWatch;
+    /** The match whose pills are in {@link #matchWatch}, so the minute tick rebuilds them only when it changes. */
+    private MatchDay.Match matchShown;
     /** config.xml show_stats, overridable by a theme. Off: the line is gone and nothing is read. */
     private boolean showStats;
     private boolean shamsi;
@@ -332,6 +339,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         public void run() {
             updateGreeting();
             updateRace();
+            updateMatch();
+            matchFeed.refreshIfDue();
             // The pill follows the network callbacks and each return to Home; only the diya's flame follows the
             // signal level, so only it needs this minute's binder calls (about 7 ms on the UI thread).
             if (festive) updateWifiLabel();
@@ -431,6 +440,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         raceKicker = findViewById(R.id.raceKicker);
         raceHeadline = findViewById(R.id.raceHeadline);
         raceSessions = findViewById(R.id.raceSessions);
+        matchPanel = findViewById(R.id.matchPanel);
+        matchKicker = findViewById(R.id.matchKicker);
+        matchHeadline = findViewById(R.id.matchHeadline);
+        matchLater = findViewById(R.id.matchLater);
+        matchWatch = findViewById(R.id.matchWatch);
+        matchFeed = new MatchFeed(this, calendar -> {
+            matchCalendar = calendar;
+            updateMatch();
+        });
+        matchCalendar = matchFeed.cached();
         showStats = cfg.showStats;
         shamsi = cfg.shamsiDate;
         greetingName = cfg.greetingName;
@@ -823,6 +842,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (openLiveTvAfterBoot()) return;
         updateGreeting();
         updateRace();
+        updateMatch();
+        matchFeed.refreshIfDue();
         // The network and Inputs pills keep their state while Home is in the background, and callbacks update them
         // when the network or the inputs change, so this refresh only catches anything missed. Its binder calls
         // (about 7 ms on a TCL C755, most of it WifiManager.getConnectionInfo) would hold up the first frame back
@@ -1068,6 +1089,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onDestroy();
         unregisterReceiver(packageReceiver);
         wallpaperPlayer.close();
+        matchFeed.close();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (tim != null) tim.unregisterCallback(inputCallback);
@@ -2070,7 +2092,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     rtlAppGrid, keyCode == KeyEvent.KEYCODE_DPAD_LEFT);
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-            if (position < COLUMNS) return false;          // dock row: let focus move to the top bar
+            if (position < COLUMNS) return focusMatchWatch(); // dock row: the match pills, else the top bar
             target = position - COLUMNS;
         } else {
             int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;
@@ -2294,6 +2316,140 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         raceSessions.setText(row);
         racePanel.setVisibility(View.VISIBLE);
+    }
+
+    // ---- match panel (config.xml match_teams) ------------------------------------------------------
+
+    private static final int MATCH_GREEN = 0xFF2FD16B;
+
+    /** Shows or hides the match panel for this minute, as {@link #updateRace()} does; the race panel wins the space. */
+    private void updateMatch() {
+        if (!matchFeed.enabled()) return;
+        MatchDay.State s = racePanel.getVisibility() == View.VISIBLE ? null
+                : MatchDay.at(matchCalendar, java.time.Instant.now());
+        if (s == null) {
+            if (matchPanel.hasFocus()) focusTile(lastFocused % COLUMNS);
+            matchPanel.setVisibility(View.GONE);
+            matchShown = null;
+            return;
+        }
+        MatchDay.Match m = s.match;
+        java.time.format.DateTimeFormatter when = java.time.format.DateTimeFormatter.ofPattern(
+                android.text.format.DateFormat.is24HourFormat(this) ? "EEE dd/MM HH:mm" : "EEE dd/MM h:mm a", Locale.getDefault())
+                .withZone(java.time.ZoneId.systemDefault());
+        android.text.SpannableStringBuilder kicker = new android.text.SpannableStringBuilder();
+        kicker.append(m.team).append("  \u00B7  ").append(m.competition).append("  \u00B7  ");
+        if (s.live) {
+            int start = kicker.length();
+            kicker.append("\u25CF ").append(getString(R.string.match_live));
+            kicker.setSpan(new android.text.style.ForegroundColorSpan(MATCH_GREEN), start, kicker.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        } else {
+            kicker.append(when.format(m.start));
+            if (s.untilStart.toHours() < 48) {
+                kicker.append("  \u00B7  ").append(getString(R.string.match_in, RaceWeekend.countdown(getResources(), s.untilStart)));
+            }
+        }
+        matchKicker.setText(kicker);
+        matchHeadline.setText(m.title());
+
+        // One line per later match, with every broadcaster in text: "THEN   Santos x Palmeiras  WED 28/10 19:30  ·  Premiere".
+        android.text.SpannableStringBuilder later = new android.text.SpannableStringBuilder();
+        String label = getString(R.string.match_later).toUpperCase(Locale.getDefault()) + "   ";
+        for (MatchDay.Match next : s.later) {
+            if (later.length() > 0) later.append('\n');
+            int line = later.length();
+            if (line == 0) later.append(label);
+            later.append(next.title()).append("  ").append(when.format(next.start).toUpperCase(Locale.getDefault()));
+            List<String> names = new ArrayList<>();
+            for (MatchDay.Watch w : next.watch) names.add(w.name);
+            if (!names.isEmpty()) {
+                later.append("  ·  ");
+                int start = later.length();
+                later.append(String.join(", ", names));
+                later.setSpan(new android.text.style.ForegroundColorSpan(0xE6FFFFFF), start, later.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            // Later lines start under the first match, not under the label.
+            if (line > 0) later.setSpan(new android.text.style.LeadingMarginSpan.Standard(
+                    Math.round(matchLater.getPaint().measureText(label))), line, later.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        matchLater.setText(later);
+        matchLater.setVisibility(later.length() == 0 ? View.GONE : View.VISIBLE);
+
+        if (m != matchShown) {
+            boolean hadFocus = matchWatch.hasFocus();
+            matchWatch.removeAllViews();
+            for (MatchDay.Watch w : m.watch) matchWatch.addView(matchPill(w));
+            matchShown = m;
+            if (hadFocus && !focusMatchWatch()) focusTile(lastFocused % COLUMNS);
+        }
+        matchPanel.setVisibility(View.VISIBLE);
+    }
+
+    /** A top-bar style pill that opens the app showing the match; dimmed and out of the focus order when it is not installed. */
+    private View matchPill(MatchDay.Watch w) {
+        TextView pill = new TextView(this, null, 0, R.style.TopButton);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                Math.round(42 * getResources().getDisplayMetrics().density));
+        lp.setMarginStart(Math.round(10 * getResources().getDisplayMetrics().density));
+        pill.setLayoutParams(lp);
+        pill.setSingleLine(true);
+        pill.setText(w.name);
+        // The style's end padding makes room for an icon; without one the text sits centred.
+        pill.setPaddingRelative(pill.getPaddingEnd(), 0, pill.getPaddingEnd(), 0);
+        // No package: a broadcaster match_apps does not map, shown so every option is on screen.
+        Intent open = w.pkg.isEmpty() ? null : MatchDay.LIVE_TV.equals(w.pkg) ? liveTvIntent()
+                : getPackageManager().getLeanbackLaunchIntentForPackage(w.pkg);
+        if (open == null && !w.pkg.isEmpty() && !MatchDay.LIVE_TV.equals(w.pkg)) open = getPackageManager().getLaunchIntentForPackage(w.pkg);
+        // A link (a YouTube channel) opens in the app when it handles it, else the app opens on its home screen.
+        if (open != null && !w.uri.isEmpty()) {
+            Intent link = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(w.uri)).setPackage(w.pkg);
+            if (link.resolveActivity(getPackageManager()) != null) open = link;
+        }
+        if (open == null) {
+            pill.setFocusable(false);
+            pill.setClickable(false);
+            pill.setAlpha(0.45f);
+            return pill;
+        }
+        final Intent target = open;
+        pill.setOnClickListener(v -> open(new Intent(target)));
+        pill.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                focusTile(lastFocused % COLUMNS);
+                return true;
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                firstTopButton().requestFocus();
+                return true;
+            }
+            // Keep focus on the pills at their ends instead of jumping to whatever lies beyond.
+            View first = null, last = null;
+            for (int i = 0; i < matchWatch.getChildCount(); i++) {
+                View c = matchWatch.getChildAt(i);
+                if (!c.isFocusable()) continue;
+                if (first == null) first = c;
+                last = c;
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v == first;
+            return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v == last;
+        });
+        if (advancedEffects) {
+            pill.setOnFocusChangeListener((view, focused) -> view.animate()
+                    .scaleX(focused ? 1.04f : 1f).scaleY(focused ? 1.04f : 1f)
+                    .setDuration(reducedMotion ? Motion.REDUCED_MS : 160).start());
+        }
+        return pill;
+    }
+
+    /** Up from the dock: the first match pill that opens an app, if the panel is up. */
+    private boolean focusMatchWatch() {
+        if (matchPanel == null || matchPanel.getVisibility() != View.VISIBLE) return false;
+        for (int i = 0; i < matchWatch.getChildCount(); i++) {
+            View c = matchWatch.getChildAt(i);
+            if (c.isFocusable()) return c.requestFocus();
+        }
+        return false;
     }
 
     private void refreshPillsAfterNextDraw() {

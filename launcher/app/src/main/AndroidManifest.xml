@@ -8,6 +8,8 @@
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- This fork only: the match panel fetches ge.globo.com's agenda pages (MatchFeed). Nothing else goes online. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- Needed since Android 10 to read the Wi-Fi network name for the network pill. Never requested at
          runtime: build-and-install grants it with pm grant, so lint's Android 12 "ask for COARSE with
